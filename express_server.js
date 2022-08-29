@@ -5,6 +5,8 @@ app.set("view engine", "ejs");
 var cookieParser = require("cookie-parser");
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+const bcrypt = require("bcryptjs");
+
 
 function generateRandomString() {
   let result = Math.random().toString(36).substr(2, 6);
@@ -85,7 +87,6 @@ const urlsForUser = function (userId) {
       urls[eachId] = urlDatabase[eachId];
     }
   }
-  console.log("obj urls", urls);
   return urls;
 };
 
@@ -225,13 +226,15 @@ app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const findUserByEmail = getUserByEmail(email);
   const findUserByPassword = getUserByPassword(password);
+  console.log(findUserByEmail)
+  const findUserId = getUserId(email);  
   if (!findUserByEmail) {
-    return res.status(403).send("invalid email or password");
+    return res.status(403).send("invalid email");
   }
-  if (!findUserByPassword) {
-    return res.status(403).send("invalid email or password");
+  console.log(users[findUserId])
+  if (!bcrypt.compareSync(password, users[findUserId].password)) {
+    return res.status(403).send("invalid password");
   }
-  const findUserId = getUserId(email);
   res.cookie("user_id", findUserId);
   res.redirect("/urls");
 });
@@ -250,13 +253,14 @@ app.post("/register", (req, res) => {
   if (findUserByEmail) {
     return res.status(400).send("same email");
   }
-
   const id = generateRandomString();
+  const hashedPassword = bcrypt.hashSync(password, 10);
   users[id] = {
     id,
     email,
-    password,
+    password: hashedPassword,
   };
+  console.log('users obj', users)
   res.cookie("user_id", id);
   res.redirect("/urls");
 });
