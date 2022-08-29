@@ -12,8 +12,14 @@ function generateRandomString() {
 }
 
 const urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
 
 const users = {
@@ -32,104 +38,200 @@ const users = {
 const getUserByEmail = function (email) {
   for (const eachUser in users) {
     if (users[eachUser].email === email) {
-      return true
+      return true;
     }
   }
-  return false
+  return false;
 };
 
 const getUserByPassword = function (password) {
   for (const eachUser in users) {
     if (users[eachUser].password === password) {
-      return true
+      return true;
     }
   }
-  return false
+  return false;
 };
 
 const getUserId = function (email) {
   for (const eachUser in users) {
     if (users[eachUser].email === email) {
-      return eachUser
+      return eachUser;
     }
   }
-}
+};
+
+const checkURLId = function (id) {
+  for (const eachId in urlDatabase) {
+    if (urlDatabase[eachId].longURL === urlDatabase[id].longURL) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const urlForUser = function (userId) {
+  for (const eachId in urlDatabase) {
+    if (urlDatabase[eachId].userID === userId) {
+      return urlDatabase[eachId].longURL;
+    }
+  }
+};
+
+const urlsForUser = function (userId) {
+  const urls = {};
+  for (const eachId in urlDatabase) {
+    if (urlDatabase[eachId].userID === userId) {
+      urls[eachId] = urlDatabase[eachId];
+    }
+  }
+  console.log("obj urls", urls);
+  return urls;
+};
+
+
 
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
 app.get("/urls", (req, res) => {
-  const id = req.cookies["user_id"];
-  const templateVars = {
-    urls: urlDatabase,
-    user: users[id],
-  };
-  res.render("urls_index", templateVars);
+  if (req.cookies["user_id"]) {
+    const id = req.cookies["user_id"];
+    const templateVars = {
+      urls: urlsForUser(id),
+      user: users[id],
+    };
+    res.render("urls_index", templateVars);
+  } else {
+    res.send("please login first!");
+  }
 });
 
 app.get("/urls/new", (req, res) => {
-  const id = req.cookies["user_id"];
-  const templateVars = {
-    user: users[id],
-  };
-  res.render("urls_new", templateVars);
+  if (req.cookies["user_id"]) {
+    const id = req.cookies["user_id"];
+    const templateVars = {
+      user: users[id],
+    };
+    res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
+  }
 });
 
 app.get("/urls/:id", (req, res) => {
-  const id = req.cookies["user_id"];
-  const templateVars = {
-    id: req.params.id,
-    longURL: urlDatabase[req.params.id],
-    user: users[id],
-  };
-  res.render("urls_show", templateVars);
+  if (req.cookies["user_id"]) {
+    const userId = req.cookies["user_id"];
+    const longURL = urlForUser(userId);
+    console.log("longURL", longURL);
+    if (longURL) {
+      const id = req.cookies["user_id"];
+      const templateVars = {
+        id: req.params.id,
+        longURL,
+        user: users[id],
+      };
+      res.render("urls_show", templateVars);
+    } else {
+      res.send("not your url");
+    }
+  } else {
+    res.send("please login first");
+  }
 });
 
 app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id];
-  res.redirect(longURL);
+  console.log("id", req.params.id);
+  const id = req.params.id;
+  const findURLId = checkURLId(id);
+  if (findURLId) {
+    const longURL = urlDatabase[id].longURL;
+    res.redirect(longURL);
+  } else {
+    res.send("id not exist");
+  }
 });
 
 app.get("/register", (req, res) => {
-  res.render("urls_register");
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+  } else {
+    res.render("urls_register");
+  }
 });
 
-app.get('/login', (req, res) => {
-  res.render('urls_login')
-})
+app.get("/login", (req, res) => {
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+  } else {
+    res.render("urls_login");
+  }
+});
 
 app.post("/urls/:id", (req, res) => {
-  console.log("req.body", req.body);
-  console.log("req.params", req.params);
-  res.redirect("/urls");
+  if (req.cookies["user_id"]) {
+    const urlObj = urlDatabase[req.params.id]
+    if (urlObj) {
+      if (urlObj.userID === req.cookies["user_id"]) {
+        console.log("req.body", req.body);
+        console.log("req.params", req.params);
+        urlObj.longURL = req.body.url
+        res.redirect("/urls");
+      } else {
+        res.send("you do not own this url");
+      }
+    } else {
+      res.send("url does not exist");
+    }
+  } else {
+    res.send("please login first!");
+  }
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  const id = generateRandomString();
-  urlDatabase[id] = req.body.longURL;
-  console.log(urlDatabase);
-  res.redirect("/urls");
+  if (req.cookies["user_id"]) {
+    const id = generateRandomString();
+    urlDatabase[id] = {
+      longURL: req.body.longURL,
+      userID: req.cookies["user_id"],
+    };
+    res.redirect("/urls");
+  } else {
+    res.send("please login first");
+  }
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  const shortURL = req.params.id;
-  delete urlDatabase[shortURL];
-  res.redirect("/urls");
+  if (req.cookies["user_id"]) {
+    const urlObj = urlDatabase[req.params.id]
+    if (urlObj) {
+      if (urlObj.userID === req.cookies["user_id"]) {
+        const shortURL = req.params.id;
+        delete urlDatabase[shortURL];
+        res.redirect("/urls");
+      } else {
+        res.send("you do not own this url");
+      }
+    } else {
+      res.send("id does not exist");
+    }
+  } else {
+    res.send("please login first");
+  }
 });
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  const findUserByEmail = getUserByEmail(email)
-  const findUserByPassword = getUserByPassword(password)
+  const findUserByEmail = getUserByEmail(email);
+  const findUserByPassword = getUserByPassword(password);
   if (!findUserByEmail) {
-    return res.status(403).send('invalid email or password')
+    return res.status(403).send("invalid email or password");
   }
   if (!findUserByPassword) {
-    return res.status(403).send('invalid email or password')
+    return res.status(403).send("invalid email or password");
   }
-  const findUserId = getUserId(email)
+  const findUserId = getUserId(email);
   res.cookie("user_id", findUserId);
   res.redirect("/urls");
 });
@@ -144,16 +246,16 @@ app.post("/register", (req, res) => {
   if (email === "" || password === "") {
     return res.status(400).send("something wrong");
   }
-  const findUserByEmail = getUserByEmail(email)
+  const findUserByEmail = getUserByEmail(email);
   if (findUserByEmail) {
-    return res.status(400).send("same email")  
+    return res.status(400).send("same email");
   }
 
   const id = generateRandomString();
   users[id] = {
     id,
     email,
-    password
+    password,
   };
   res.cookie("user_id", id);
   res.redirect("/urls");
