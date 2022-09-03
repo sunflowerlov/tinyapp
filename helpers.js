@@ -7,4 +7,22 @@ const getUserByEmail = function (email, userDatabase) {
   //return false;
 };
 
-module.exports = {getUserByEmail}
+const urlForUser = function (userId, urlDatabase) {
+  for (const eachId in urlDatabase) {
+    if (urlDatabase[eachId].userID === userId) {
+      return urlDatabase[eachId].longURL;
+    }
+  }
+};
+
+const urlsForUser = function (userId, urlDatabase) {
+  const urls = {};
+  for (const eachId in urlDatabase) {
+    if (urlDatabase[eachId].userID === userId) {
+      urls[eachId] = urlDatabase[eachId];
+    }
+  }
+  return urls;
+};
+
+module.exports = {getUserByEmail, urlForUser, urlsForUser}

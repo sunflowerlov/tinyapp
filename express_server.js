@@ -1,4 +1,4 @@
-const { getUserByEmail } = require('./helpers')
+const { getUserByEmail, urlForUser, urlsForUser } = require('./helpers')
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
@@ -42,46 +42,31 @@ const users = {
 };
 
 const checkURLId = function (id) {
-  for (const eachId in urlDatabase) {
-    if (urlDatabase[eachId].longURL === urlDatabase[id].longURL) {
+    if (urlDatabase[id]) {
       return true;
     }
-  }
   return false;
 };
 
-const urlForUser = function (userId) {
-  for (const eachId in urlDatabase) {
-    if (urlDatabase[eachId].userID === userId) {
-      return urlDatabase[eachId].longURL;
-    }
-  }
-};
-
-const urlsForUser = function (userId) {
-  const urls = {};
-  for (const eachId in urlDatabase) {
-    if (urlDatabase[eachId].userID === userId) {
-      urls[eachId] = urlDatabase[eachId];
-    }
-  }
-  return urls;
-};
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  if (req.session.user_id) {
+    res.redirect('/urls');
+  } else {
+    res.redirect('/login');
+  }
 });
 
 app.get("/urls", (req, res) => {
   if (req.session.user_id) {
     const id = req.session.user_id;
     const templateVars = {
-      urls: urlsForUser(id),
+      urls: urlsForUser(id, urlDatabase),
       user: users[id],
     };
     res.render("urls_index", templateVars);
   } else {
-    res.send("please login first!");
+    res.redirect('/login')
   }
 });
 
@@ -100,7 +85,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   if (req.session.user_id) {
     const userId = req.session.user_id;
-    const longURL = urlForUser(userId);
+    const longURL = urlForUser(userId, urlDatabase);
     console.log("longURL", longURL);
     if (longURL) {
       const id = req.session.user_id;
@@ -134,7 +119,10 @@ app.get("/register", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
   } else {
-    res.render("urls_register");
+    const templateVars = {
+      user: users[req.session.user_id],
+    };
+    res.render("urls_register", templateVars);
   }
 });
 
@@ -142,7 +130,10 @@ app.get("/login", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
   } else {
-    res.render("urls_login");
+    const templateVars = {
+      user: users[req.session.user_id],
+    };
+    res.render("urls_login", templateVars);
   }
 });
 
@@ -154,6 +145,7 @@ app.post("/urls/:id", (req, res) => {
         console.log("req.body", req.body);
         console.log("req.params", req.params);
         urlObj.longURL = req.body.url
+        
         res.redirect("/urls");
       } else {
         res.send("you do not own this url");
@@ -173,7 +165,7 @@ app.post("/urls", (req, res) => {
       longURL: req.body.longURL,
       userID: req.session.user_id,
     };
-    res.redirect("/urls");
+    res.redirect(`/urls/${id}`);
   } else {
     res.send("please login first");
   }
