@@ -104,7 +104,6 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-  //console.log("id", req.params.id);
   const id = req.params.id;
   const findURLId = checkURLId(id);
   if (findURLId) {
@@ -192,13 +191,10 @@ app.post("/urls/:id/delete", (req, res) => {
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
-  const findUserByEmail = getUserByEmail(email, users);
-  //console.log(findUserByEmail)
-  //const findUserId = getUserId(email);  
+  const findUserByEmail = getUserByEmail(email, users); 
   if (!findUserByEmail) {
     return res.status(403).send("invalid email");
   }
-  //console.log(users[findUserId])
   if (!bcrypt.compareSync(password, users[findUserByEmail].password)) {
     return res.status(403).send("invalid password");
   }
@@ -228,7 +224,6 @@ app.post("/register", (req, res) => {
     email,
     password: hashedPassword,
   };
-  //console.log('users obj', users)
   req.session.user_id = id;
   res.redirect("/urls");
 });

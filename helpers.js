@@ -4,7 +4,6 @@ const getUserByEmail = function (email, userDatabase) {
       return userDatabase[eachUser].id;
     }
   }
-  //return false;
 };
 
 const urlForUser = function (userId, urlDatabase) {
